@@ -2,6 +2,7 @@ package select.system.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -138,10 +139,14 @@ public class UserServiceImpl implements UserService , UserDetailsService {
         }
         //生成token
         //将原有的token值全部干掉，防止重复登陆
-        Jedis jedis = jedisUtil.getSource();
         //存入键值对
-        String jedisKey = jedis.get(user.getUserName()) ;
-        if(jedisKey != null){
+        ValueOperations valueOperations = redisTemplate.opsForValue() ;
+        User newUser = (User)valueOperations.get(user.getUserName()) ;
+        //User newUser = (User) redisTemplate.opsForValue().get(user.getUserName());
+        //ValueOperations valueOperations = redisTemplate.opsForValue();
+        //Long num = valueOperations.size(user.getUserName()) ;
+        String redisToken = newUser.getToken() ;
+        if(redisToken != null ){
             jedisUtil.delString(user.getUserName());
         }
 
@@ -149,14 +154,13 @@ public class UserServiceImpl implements UserService , UserDetailsService {
         user.setToken(token);
         user.setGrantedAuthority("authority");
         user.setGrantedAuthorities(grantedAuthorities);
-        jedis.set("token" , user.getToken()) ;
+        valueOperations.set("token" , user.getToken()) ;
         for(GrantedAuthority grantedAuthority : user.getGrantedAuthorities()){
-            jedis.set(user.getGrantedAuthority() ,grantedAuthority.getAuthority()) ;
+            valueOperations.set(user.getGrantedAuthority() ,grantedAuthority.getAuthority()) ;
         }
 
-        redisTemplate.opsForValue().set(user.getUserName() , user);
-        //jedisUtil.tokenToJedis1(user);
-        jedis.close();
+        valueOperations.set(user.getUserName() , user);
+
         return new org.springframework.security.
                 core.userdetails.User("user" , new BCryptPasswordEncoder().encode(user.getPassword()) , grantedAuthorities) ;
 

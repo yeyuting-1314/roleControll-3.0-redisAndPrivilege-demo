@@ -41,9 +41,9 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
 
 
     //像这个一样
-    public JWTAuthorizationFilter(AuthenticationManager authenticationManager) {
-
+    public JWTAuthorizationFilter(AuthenticationManager authenticationManager , RedisTemplate redisTemplate) {
         super(authenticationManager);
+        this.redisTemplate = redisTemplate ;
     }
 
     @Override
@@ -68,15 +68,9 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter {
         //去redis里面拿token 确认redis中存在和token对应的值
         ValueOperations UserVO = redisTemplate.opsForValue();
         User newUser = (User)  UserVO.get("user") ;
+        String redisToken = newUser.getToken() ;
+        List<GrantedAuthority> grantedAuthorities = newUser.getGrantedAuthorities() ;
 
-        //参数是？？？？
-
-        Jedis jedis = new Jedis("localhost" , 6379) ;
-        String redisToken = jedis.get(JwtUtils.TOKEN_HEADER);
-
-        List<GrantedAuthority> grantedAuthorities = new ArrayList<>();
-        GrantedAuthority grantedAuthority = new SimpleGrantedAuthority(jedis.get(JwtUtils.ROLE_HEADER)) ;
-        grantedAuthorities.add(grantedAuthority) ;
         if (redisToken.equals(tokenHeader)){
             return new UsernamePasswordAuthenticationToken("user", null, grantedAuthorities);
         }

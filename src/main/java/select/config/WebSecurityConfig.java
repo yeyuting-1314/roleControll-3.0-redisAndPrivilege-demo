@@ -3,6 +3,8 @@ package select.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,19 +39,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     AuthenticationAccessDeniedHandler authenticationAccessDeniedHandler;
     @Autowired
     SimpleAuthenticationEntryPoint simpleAuthenticationEntryPoint;
+    @Autowired
+    RedisTemplate redisTemplate ;
 
     /**
      * 配置角色继承关系
      *
      * @return
      */
-    @Bean
-    RoleHierarchy roleHierarchy(){
-        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl() ;
-        String hierarchy = "ROLE_SUPERADMIN > ROLE_ADMIN > ROLE_USER" ;
-        roleHierarchy.setHierarchy(hierarchy) ;
-        return roleHierarchy ;
-    }
+
+
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -92,7 +91,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 // 不需要session
                 .and()
                 //authenticationManager修改
-                .addFilter(new JWTAuthorizationFilter(authenticationManager()))
+                .addFilter(new JWTAuthorizationFilter(authenticationManager() ,redisTemplate ))
                 // 不需要session
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
     }
